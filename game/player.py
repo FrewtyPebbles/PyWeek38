@@ -22,8 +22,13 @@ class Player:
         self.player_collider = BoxCollider.from_bounds(*self.player_collider_bounds, offset = copy(self.position), scale=Vec3(1,4,1))
         self.can_jump = True
 
+        self.lock_rotation = False
+
         self.center_ray = RayCollider(self.position, self.rotation)
         
+    def rotation_lock(self, toggle:bool):
+        self.lock_rotation = toggle
+
     def center_ray_collision(self, other: Object3D | Collider) -> RayHit:
         return self.center_ray.get_collision(other)
 
@@ -104,16 +109,21 @@ class Player:
 
 
     def look_update(self):
+        if self.lock_rotation: return
         dt = self.game.window.dt
         
         mouse = self.game.window.event.mouse
 
         mouse_moving = self.game.window.event.check_flag(EVENT_FLAG.MOUSE_MOTION)
+        
+        future_rot = copy(self.rotation)
+        future_rot.rotate(self.rotation.right, mouse_moving * m.radians(mouse.rel_y * self.game.globals["mouse_sensitivity_y"]) * dt)
 
-        fwd_floor_angle = m.pi/2 - m.acos(min(1, max(-1, self.rotation.forward.dot(Vec3(0,1,0)))))
 
-        if abs(fwd_floor_angle) < m.radians(90):
-            self.rotation.rotate(self.rotation.right, mouse_moving * m.radians(mouse.rel_y * self.game.globals["mouse_sensitivity_y"]) * dt)
+        
+
+        if future_rot.up.dot(Vec3(0,1,0)) > 0.50: # lower the value the more up and down look
+            self.rotation = future_rot
 
         self.rotation.rotate(Vec3(0,1,0), -mouse_moving * m.radians(mouse.rel_x * self.game.globals["mouse_sensitivity_x"]) * dt)
 

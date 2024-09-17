@@ -2,7 +2,7 @@ from __future__ import annotations
 from game_tools import Game
 from game_tools.scene import Scene
 from game_tools.utility import is_clicking_sprite
-from game.dialogue import Dialogue
+from game.dialogue import Dialogue, DialogueOption
 
 from game.player import Player
 
@@ -29,10 +29,21 @@ class SceneIntro(Scene):
         self.floor_collider = BoxCollider(self.floor)
         self.floor.add_collider(self.floor_collider)
         self.game.window.add_object(self.floor)
+
+        
         
         dialogue_position = Vec2(30, 30)
+        
+        dialogue_option_position = Vec2(100, 70)
 
-        self.test_dialogue = Dialogue(game, "Hello how are you?", dialogue_position, _next = Dialogue(game, "Ah, thats right you cant respond yet!", dialogue_position, _next = Dialogue(game, "Bye then.", dialogue_position)))
+
+        self.dialogue_option_background = Sprite("./sprites/placeholder_end_button.png")
+
+        self.test_dialogue = Dialogue(game, "Hello how are you?", dialogue_position, options = [
+            DialogueOption(game, "Good", self.dialogue_option_background, dialogue_option_position, chosen_callback = lambda: self.change_dialogue(Dialogue(game, "Awesome!", dialogue_position)), finished_typing_callback = lambda:self.player.rotation_lock(True), end_callback = lambda:self.player.rotation_lock(False))
+], _next = Dialogue(game, "Ah, thats right you cant respond yet!", dialogue_position, _next = Dialogue(game, "Bye then.", dialogue_position)))
+
+        
     
     def unload(self):
         self.game.window.remove_object(self.cube)
@@ -68,14 +79,14 @@ class SceneIntro(Scene):
             cube_hit = self.player.center_ray_collision(self.cube)
             if cube_hit.hit:
                 if not self.test_dialogue.finished_typing:
-                    print("CUBE START")
+                    # CUBE START
                     self.test_dialogue.start()
                 elif self.test_dialogue.next:
                     self.test_dialogue.end()
                     self.test_dialogue = self.test_dialogue.next
                     self.test_dialogue.start()
                 else:
-                    print("CUBE END")
+                    # CUBE END
                     self.test_dialogue.end()
                 
 
@@ -90,6 +101,11 @@ class SceneIntro(Scene):
         if all(self.player.check_collision_future(col) for col in [self.cube]):
             self.player.velocity = Vec3(0,0,0)
             self.player.can_jump = True
+    
+    def change_dialogue(self, dialogue:Dialogue):
+        self.test_dialogue.end()
+        self.test_dialogue = dialogue
+        self.test_dialogue.start()
 
     def start(self):
         self.player.start()
