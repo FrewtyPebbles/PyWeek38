@@ -7,7 +7,7 @@ from game.dialogue import Dialogue, DialogueOption
 from game.player import Player
 
 from Loxoc import (
-    Sprite, Object2D, Vec2, EVENT_STATE, Model, Object3D, Vec3, EVENT_FLAG, BoxCollider
+    Sprite, Object2D, Vec2, EVENT_STATE, Model, Object3D, Vec3, EVENT_FLAG, BoxCollider, Quaternion as Quat, Texture, Material
 )
 
 import math
@@ -17,13 +17,17 @@ class SceneIntro(Scene):
         super().load(game)
 
         self.player = Player(self.game)
+        
+        self.character_plane_model = Model.from_file("./models/character_plane/character_plane.gltf")
 
         self.cube_model = Model.from_file("./models/cube/cube.gltf")
 
-        self.cube = Object3D(self.cube_model, Vec3(0,0,10), scale=Vec3(1,1,1))
-        self.cube_collider = BoxCollider(self.cube)
-        self.cube.add_collider(self.cube_collider)
-        self.game.window.add_object(self.cube)
+        self.stick_figure_sprite = Texture.from_file("./sprites/Bilboard Sprite Man.png")
+
+        self.character = Object3D(self.character_plane_model, Vec3(0,0,10), scale=Vec3(1,1,1)) # Using an empty material causes a crash
+        self.character_collider = BoxCollider(self.character)
+        self.character.add_collider(self.character_collider)
+        self.game.window.add_object(self.character)
 
         self.floor = Object3D(self.cube_model, Vec3(0,-5,10), scale=Vec3(100,1,100))
         self.floor_collider = BoxCollider(self.floor)
@@ -55,7 +59,7 @@ class SceneIntro(Scene):
         
     
     def unload(self):
-        self.game.window.remove_object(self.cube)
+        self.game.window.remove_object(self.character)
         self.game.window.remove_object(self.floor)
 
     def update(self):
@@ -65,19 +69,16 @@ class SceneIntro(Scene):
         if event.get_flag(EVENT_FLAG.KEY_ESCAPE) == EVENT_STATE.PRESSED:
             self.game.quit_game = True
 
-        self.cube.rotation.rotate_yaw(2 * dt)
-        self.cube.rotation.rotate_pitch(2 * dt)
-        self.cube.rotation.rotate_roll(2 * dt)
-
         self.player.update(self.player_falling_collision_check, self.player_movement_collision_check)
 
-        if self.player.position.distance(self.cube.position) < 10:
+        if self.player.position.distance(self.character.position) < 10:
             self.player_on_interact()
         elif self.dialogue.running:
             self.dialogue.end()
             
         self.dialogue.update()
         
+        self.bilboard_character(self.character)
     
         self.game.window.update()
 
@@ -85,7 +86,7 @@ class SceneIntro(Scene):
         event = self.game.window.event
         mouse = event.mouse
         if mouse.state == EVENT_STATE.PRESSED:
-            cube_hit = self.player.center_ray_collision(self.cube)
+            cube_hit = self.player.center_ray_collision(self.character)
             if cube_hit.hit:
                 if not self.dialogue.finished_typing:
                     # CUBE START
@@ -98,16 +99,27 @@ class SceneIntro(Scene):
                     # CUBE END
                     self.dialogue.end()
                 
-
-
+    
+    def bilboard_character(self, character:Object3D):
+        vec_direction = (character.position - self.player.position).get_normalized()
+        fwd_vec = character.rotation.forward
+        
+        current_yaw = math.atan2(fwd_vec.x, fwd_vec.z)
+        target_yaw = math.atan2(vec_direction.x, vec_direction.z)
+        
+        yaw = target_yaw - current_yaw
+        
+        yaw_quat = Quat.from_axis_angle(Vec3(0.0,1.0,0.0), yaw)
+        
+        character.rotation = (yaw_quat * character.rotation).get_normalized()
 
     def player_falling_collision_check(self):
-        if all(self.player.check_collision_future(col) for col in [self.floor]):
-            self.player.velocity.y = 0
+        if any(self.player.check_collision_future(col) for col in [self.floor, self.character]):
+            self.player.velocity = Vec3(0,0,0)
             self.player.can_jump = True
 
     def player_movement_collision_check(self):
-        if all(self.player.check_collision_future(col) for col in [self.cube]):
+        if any(self.player.check_collision_future(col) for col in [self.character]):
             self.player.velocity = Vec3(0,0,0)
             self.player.can_jump = True
     

@@ -1,1 +1,1 @@
-Loxoc==1.0.0.dev41
+Loxoc==1.0.0.dev43
