@@ -20,7 +20,7 @@ class SceneIntro(Scene):
 
         self.cube_model = Model.from_file("./models/cube/cube.gltf")
 
-        self.cube = Object3D(self.cube_model, Vec3(0,0,10))
+        self.cube = Object3D(self.cube_model, Vec3(0,0,10), scale=Vec3(1,1,1))
         self.cube_collider = BoxCollider(self.cube)
         self.cube.add_collider(self.cube_collider)
         self.game.window.add_object(self.cube)
@@ -34,15 +34,24 @@ class SceneIntro(Scene):
         
         dialogue_position = Vec2(30, 30)
         
-        dialogue_option_position = Vec2(100, 70)
+        dialogue_option_position = Vec2(self.game.dimensions[0]* 2/3, 70)
 
 
         self.dialogue_option_background = Sprite("./sprites/placeholder_end_button.png")
 
-        self.test_dialogue = Dialogue(game, "Hello how are you?", dialogue_position, options = [
-            DialogueOption(game, "Good", self.dialogue_option_background, dialogue_option_position, chosen_callback = lambda: self.change_dialogue(Dialogue(game, "Awesome!", dialogue_position)), finished_typing_callback = lambda:self.player.rotation_lock(True), end_callback = lambda:self.player.rotation_lock(False))
-], _next = Dialogue(game, "Ah, thats right you cant respond yet!", dialogue_position, _next = Dialogue(game, "Bye then.", dialogue_position)))
 
+        self.dialogue = Dialogue(game, "Hello how are you?", dialogue_position, options = [
+            DialogueOption(game, "Good", self.dialogue_option_background, dialogue_option_position + Vec2(0,70), 
+                chosen_callback = lambda: self.change_dialogue(Dialogue(game, "Awesome!", dialogue_position)),
+                finished_typing_callback = lambda:self.player.rotation_lock(True),
+                end_callback = lambda:self.player.rotation_lock(False)
+            ),
+            DialogueOption(game, "Bad", self.dialogue_option_background, dialogue_option_position, 
+                chosen_callback = lambda: self.change_dialogue(Dialogue(game, "I'm sorry to hear that!", dialogue_position)),
+                finished_typing_callback = lambda:self.player.rotation_lock(True),
+                end_callback = lambda:self.player.rotation_lock(False)
+            )
+        ])
         
     
     def unload(self):
@@ -52,7 +61,6 @@ class SceneIntro(Scene):
     def update(self):
         dt = self.game.window.deltatime
         event = self.game.window.event
-        mouse = event.mouse
 
         if event.get_flag(EVENT_FLAG.KEY_ESCAPE) == EVENT_STATE.PRESSED:
             self.game.quit_game = True
@@ -63,13 +71,14 @@ class SceneIntro(Scene):
 
         self.player.update(self.player_falling_collision_check, self.player_movement_collision_check)
 
-        self.test_dialogue.update()
-
-        if self.test_dialogue.running and self.player.position.distance(self.cube.position) > 10:
-            self.test_dialogue.end()
-
-        self.player_on_interact()
-
+        if self.player.position.distance(self.cube.position) < 10:
+            self.player_on_interact()
+        elif self.dialogue.running:
+            self.dialogue.end()
+            
+        self.dialogue.update()
+        
+    
         self.game.window.update()
 
     def player_on_interact(self):
@@ -78,16 +87,16 @@ class SceneIntro(Scene):
         if mouse.state == EVENT_STATE.PRESSED:
             cube_hit = self.player.center_ray_collision(self.cube)
             if cube_hit.hit:
-                if not self.test_dialogue.finished_typing:
+                if not self.dialogue.finished_typing:
                     # CUBE START
-                    self.test_dialogue.start()
-                elif self.test_dialogue.next:
-                    self.test_dialogue.end()
-                    self.test_dialogue = self.test_dialogue.next
-                    self.test_dialogue.start()
-                else:
+                    self.dialogue.start()
+                elif self.dialogue.next:
+                    self.dialogue.end()
+                    self.dialogue = self.dialogue.next
+                    self.dialogue.start()
+                elif len(self.dialogue.options) == 0:
                     # CUBE END
-                    self.test_dialogue.end()
+                    self.dialogue.end()
                 
 
 
@@ -103,9 +112,9 @@ class SceneIntro(Scene):
             self.player.can_jump = True
     
     def change_dialogue(self, dialogue:Dialogue):
-        self.test_dialogue.end()
-        self.test_dialogue = dialogue
-        self.test_dialogue.start()
+        self.dialogue.end()
+        self.dialogue = dialogue
+        self.dialogue.start()
 
     def start(self):
         self.player.start()

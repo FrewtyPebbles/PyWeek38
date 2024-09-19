@@ -20,6 +20,7 @@ class Player:
         self.friction = friction
         self.player_collider_bounds = Vec3(1,1,1), Vec3(-1,-1,-1)
         self.player_collider = BoxCollider.from_bounds(*self.player_collider_bounds, offset = copy(self.position), scale=Vec3(1,4,1))
+        self.future_collider = BoxCollider.from_bounds(*self.player_collider_bounds, scale=self.player_collider.scale, offset = self.position - Vec3(0,0.01,0) + self.velocity * self.game.window.dt)
         self.can_jump = True
 
         self.lock_rotation = False
@@ -36,9 +37,8 @@ class Player:
         return self.player_collider.check_collision(other)
     
     def check_collision_future(self, other: Object3D | Collider) -> bool:
-        collider = BoxCollider.from_bounds(*self.player_collider_bounds, scale=self.player_collider.scale, offset = self.position - Vec3(0,0.01,0) + self.velocity * self.game.window.dt)
-        did_collide = collider.check_collision(other)
-        return did_collide
+        self.future_collider.offset = self.position - Vec3(0,0.01,0) + self.velocity * self.game.window.dt
+        return self.future_collider.check_collision(other)
 
     def vel_update(self, middle_callback: Callable[[], None] = lambda:None):
         dt = self.game.window.dt

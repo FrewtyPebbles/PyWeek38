@@ -7,6 +7,7 @@ from game_tools.utility import is_clicking_sprite
 
 from typing import Callable
 
+
 import math as m
 
 class DialogueOption:
@@ -108,7 +109,8 @@ class Dialogue:
             self.progress += self.typing_speed * dt
             text_len = min(len(self.text), m.ceil(self.progress))
             self.text_object.text = self.text[:text_len]
-
+            
+            
             if text_len == len(self.text):
                 if not self.finished_typing:
                     for option in self.options:
@@ -126,7 +128,8 @@ class Dialogue:
         self.running = False
         self.finished_typing = False
         for option in self.options:
-            option.end()
+            if option.running or option.finished_typing:
+                option.end()
 
             
             
