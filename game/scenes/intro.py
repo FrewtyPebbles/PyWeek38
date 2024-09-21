@@ -9,8 +9,11 @@ from game.item import Item
 
 from Loxoc import (
     Sprite, Object2D, Vec2, EVENT_STATE, Model, Object3D, Vec3, EVENT_FLAG, BoxCollider,
-    Quaternion as Quat, Texture, Material, TextureFiltering, Shader, ShaderType, Text, Vec4
+    Quaternion as Quat, Texture, Material, TextureFiltering, Shader, ShaderType, Text, Vec4,
+    PointLight, ConvexCollider, Emitter
 )
+
+from copy import copy
 
 import math
 
@@ -43,8 +46,17 @@ class SceneIntro(Scene):
         self.item_tip_text = Text("", Vec4(1,1,1,1), Vec2(20, game.dimensions[1] - 35), Vec2(0.5,0.5), font=self.game.globals["fonts"]["font_sofadi_one"])
         self.game.window.add_text(self.item_tip_text)
 
+        self.HUD_revolver_sprite = Sprite.from_texture(Texture.from_file("./sprites/HUD_revolver.png", filtering=TextureFiltering.NEAREST))
+
+        self.HUD_revolver = Object2D(self.HUD_revolver_sprite, self.game.camera, scale=Vec2(1,1) * 250, depth=-100)
+        self.HUD_revolver.position = Vec2(self.game.dimensions[0] - self.HUD_revolver.width/2, self.HUD_revolver.width/2)
+        self.game.window.add_object2d(self.HUD_revolver)
+
         self.test_item = Item(game, "Cube", "Very cubic.", self.cube_model, Vec3(-10,-2,10), scale=Vec3(0.1,0.1,0.1))
         self.game.window.add_object(self.test_item.object)
+
+        self.test_light = PointLight(copy(self.test_item.position), 5, Vec3(0.5,0.5,1), 0.5)
+        self.game.window.add_point_light(self.test_light)
         
         
         dialogue_position = Vec2(30, 30)
@@ -69,6 +81,26 @@ class SceneIntro(Scene):
         ])
 
         self.items = [self.test_item]
+
+        self.particle_texture = Texture.from_file("./sprites/particle_effect2.png", filtering=TextureFiltering.NEAREST)
+
+        self.emitter = Emitter(
+            Vec3(0,0,0),
+            Quat.from_axis_angle(Vec3(1,0,0), math.radians(-90)),
+            Vec2(0.1,0.1),Vec2(0.3,0.3),
+            10,
+            10,
+            math.radians(30),
+            0,
+            0.10, 20.0,
+            10, 10,
+            Vec4(1,1,1,1),
+            Vec4(1,1,1,1)
+        )
+        self.emitter.material.diffuse_texture = self.particle_texture
+
+        self.emitter.start()
+        self.game.window.add_emitter(self.emitter)
         
     
     def unload(self):
@@ -79,6 +111,9 @@ class SceneIntro(Scene):
         self.game.window.remove_object(self.floor)
         self.game.window.remove_object(self.test_item.object)
         self.game.window.remove_text(self.item_tip_text)
+        self.game.window.remove_object2d(self.HUD_revolver)
+        self.game.window.remove_point_light(self.test_light)
+        self.game.window.remove_emitter(self.emitter)
 
     def update(self):
         dt = self.game.window.deltatime
@@ -108,7 +143,24 @@ class SceneIntro(Scene):
         
         self.item_update()
 
+        self.test_light.position = self.test_item.position + Vec3(0,1,0)
+
+        self.shoot_update()
+
         self.game.window.update()
+
+    def shoot_update(self):
+        dt = self.game.window.deltatime
+        event = self.game.window.event
+        self.emitter.rate = 0
+        for shootable in [self.floor, self.character]:
+            if event.mouse.state == EVENT_STATE.PRESSED:
+                shootable_hit = self.player.center_ray_collision(shootable)
+                if shootable_hit.hit:
+                    self.emitter.position = shootable_hit.position
+                    self.emitter.direction = Quat.from_unit(-self.player.rotation.forward)
+                    self.emitter.rate = 10
+                    print("shot floor")
 
     def pickup_check(self):
         event = self.game.window.event
@@ -137,8 +189,7 @@ class SceneIntro(Scene):
 
     def player_on_interact(self):
         event = self.game.window.event
-        mouse = event.mouse
-        if mouse.state == EVENT_STATE.PRESSED:
+        if event.get_flag(EVENT_FLAG.KEY_e) == EVENT_STATE.PRESSED:
             cube_hit = self.player.center_ray_collision(self.character)
             if cube_hit.hit:
                 if not self.dialogue.finished_typing:
