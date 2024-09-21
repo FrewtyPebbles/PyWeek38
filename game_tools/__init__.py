@@ -12,7 +12,7 @@ class Game:
         self.globals:dict[str, any] = {
             "mouse_sensitivity_x": 50,
             "mouse_sensitivity_y": 50,
-            "gravity": 0.6,
+            "gravity": 60.7,
             "fonts": {
                 "font_sofadi_one": Font("./fonts/Sofadi_One/SofadiOne-Regular.ttf")
             }

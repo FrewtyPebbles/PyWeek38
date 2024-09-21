@@ -7,6 +7,7 @@ from game_tools.utility import is_clicking_sprite
 
 from typing import Callable
 
+from copy import copy
 
 import math as m
 
@@ -15,9 +16,9 @@ class DialogueOption:
         self.game:Game = game
         self.text:str = text
         self.font:Font = font if font else self.game.globals["fonts"]["font_sofadi_one"]
-        self.background = Object2D(background_sprite, game.camera, scale = Vec2(100,100))
+        self.background = Object2D(background_sprite, game.camera, scale = Vec2(10,1) * 50)
 
-        self.background.position = position + Vec2(self.background.width/2, self.background.height/2) - 30
+        self.background.position = position + Vec2(self.background.width/2 - 10, self.background.height/2) - 20
         
         self.text_object = Text(self.text, color if color else Vec4(1,1,1,1), position, scale if scale else Vec2(1,1), rotation, self.font)
         self.start_callback = start_callback
@@ -56,6 +57,7 @@ class DialogueOption:
             self.progress += self.typing_speed * dt
             text_len = min(len(self.text), m.ceil(self.progress))
             self.text_object.text = self.text[:text_len]
+
 
             if text_len == len(self.text):
                 if not self.finished_typing:
@@ -109,7 +111,6 @@ class Dialogue:
             self.progress += self.typing_speed * dt
             text_len = min(len(self.text), m.ceil(self.progress))
             self.text_object.text = self.text[:text_len]
-            
             
             if text_len == len(self.text):
                 if not self.finished_typing:

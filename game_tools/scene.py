@@ -15,7 +15,7 @@ class Scene:
         self.game = game
 
     def unload(self):
-        pass
+        self.loaded = False
 
     def update(self):
         pass

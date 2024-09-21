@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from game_tools import Game
 
 from Loxoc import (Camera, Window, EVENT_FLAG, Vec3, Object3D, Quaternion, BoxCollider, Collider, EVENT_STATE, RayCollider, RayHit)
@@ -7,6 +9,9 @@ from copy import copy
 import math as m
 
 from typing import Callable
+
+if TYPE_CHECKING:
+    from game.item import Item
 
 class Player:
     def __init__(self, game:Game, position: Vec3 | None = None, rotation: Quaternion | None = None, speed = 7, max_speed = 10, max_jump_speed = 20, friction = 5) -> None:
@@ -19,13 +24,29 @@ class Player:
         self.max_jump_speed = max_jump_speed
         self.friction = friction
         self.player_collider_bounds = Vec3(1,1,1), Vec3(-1,-1,-1)
-        self.player_collider = BoxCollider.from_bounds(*self.player_collider_bounds, offset = copy(self.position), scale=Vec3(1,4,1))
+        self.player_collider = BoxCollider.from_bounds(*self.player_collider_bounds, offset = copy(self.position), scale=Vec3(1,3,1))
         self.future_collider = BoxCollider.from_bounds(*self.player_collider_bounds, scale=self.player_collider.scale, offset = self.position - Vec3(0,0.01,0) + self.velocity * self.game.window.dt)
         self.can_jump = True
 
         self.lock_rotation = False
 
         self.center_ray = RayCollider(self.position, self.rotation)
+
+        self._held_item:Item = None
+        self.can_change_held = True
+        self.pickup_cooldown = 0.5 # in seconds
+        self.pickup_timer = 0.0
+
+    @property
+    def held_item(self) -> Item:
+        return self._held_item
+    
+    @held_item.setter
+    def held_item(self, value:Item | None) -> None:
+        if self.can_change_held:
+            self._held_item = value
+            self.can_change_held = False
+
         
     def rotation_lock(self, toggle:bool):
         self.lock_rotation = toggle
@@ -42,7 +63,7 @@ class Player:
 
     def vel_update(self, middle_callback: Callable[[], None] = lambda:None):
         dt = self.game.window.dt
-        gravity = self.game.globals["gravity"]
+        gravity = self.game.globals["gravity"] * dt
         event = self.game.window.event
 
         # find angle between vector and plane to fix forward z/x rotation
@@ -141,6 +162,16 @@ class Player:
 
         camera.position = self.position
         camera.rotation = self.rotation
+
+        if not self.can_change_held:
+            self.pickup_timer += self.game.window.dt
+            if self.pickup_timer >= self.pickup_cooldown:
+                self.can_change_held = True
+                self.pickup_timer = 0
+
+
+        if self.held_item:
+            self.held_item.object.position = self.position + self.rotation.forward * 2
 
     def start(self):
         self.game.window.lock_mouse(True)
