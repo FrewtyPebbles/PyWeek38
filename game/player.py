@@ -13,8 +13,61 @@ from typing import Callable
 if TYPE_CHECKING:
     from game.item import Item
 
+class Inventory:
+    def __init__(self, player:Player, size:int) -> None:
+        self.space:list[Item|None] = [None for _ in range(size)]
+        self._size = size
+        self.player = player
+
+    @property
+    def size(self) -> int:
+        return self._size
+    
+    @size.setter
+    def size(self, value:int):
+        if value > self._size:
+            self.space.extend([None for _ in range(value - self._size)])
+        elif value < self._size:
+            for ind in range(value, self._size):
+                self.drop(ind)
+                self.space.pop(ind)
+        self._size = value
+
+    @property
+    def full(self) -> bool:
+        return all(self.space)
+    
+    def remove(self, item:Item):
+        self.space.remove(item)
+
+    def store(self, item:Item):
+        if self.full:
+            raise RuntimeError("Inventory is full.")
+        
+        for i in range(len(self.size)):
+            if not self.space[i]:
+                self.space[i] = item
+
+        # TODO call method on item to put it into stored state.
+
+    def drop(self, item:Item | int) -> Item | None:
+        item_to_drop:Item | None = None
+        # get and remove item from inventory
+        if isinstance(item, Item):
+            ind = self.space.index(item)
+            item_to_drop = self.space[ind]
+            self.space[ind] = None
+        elif isinstance(item, int):
+            item_to_drop = self.space[item]
+            self.space[ind] = None
+
+        # TODO drop the item on the ground.
+
+        return item_to_drop
+        
+
 class Player:
-    def __init__(self, game:Game, position: Vec3 | None = None, rotation: Quaternion | None = None, speed = 7, max_speed = 10, max_jump_speed = 20, friction = 5) -> None:
+    def __init__(self, game:Game, position: Vec3 | None = None, rotation: Quaternion | None = None, speed = 7, max_speed = 10, max_jump_speed = 20, friction = 5, inventory_size = 5) -> None:
         self.game: Game = game
         self.position: Vec3 = position if position else Vec3(0,0,0)
         self.velocity: Vec3 = Vec3(0,0,0)
@@ -36,6 +89,8 @@ class Player:
         self.can_change_held = True
         self.pickup_cooldown = 0.5 # in seconds
         self.pickup_timer = 0.0
+        
+        self.inventory:Inventory = Inventory(self, inventory_size)
 
     @property
     def held_item(self) -> Item:

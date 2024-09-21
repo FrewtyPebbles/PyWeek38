@@ -39,17 +39,24 @@ class SceneIntro(Scene):
 
         self.floor = Object3D(self.cube_model, Vec3(0,-5,10), scale=Vec3(100,1,100))
         self.floor.material.diffuse_texture = self.concrete_texture
-        self.floor_collider = BoxCollider(self.floor)
+        self.floor_collider = ConvexCollider(self.floor)
         self.floor.add_collider(self.floor_collider)
         self.game.window.add_object(self.floor)
 
         self.item_tip_text = Text("", Vec4(1,1,1,1), Vec2(20, game.dimensions[1] - 35), Vec2(0.5,0.5), font=self.game.globals["fonts"]["font_sofadi_one"])
         self.game.window.add_text(self.item_tip_text)
 
+        #HUD
+        self.HUD_crosshair_sprite = Sprite.from_texture(Texture.from_file("./sprites/crosshair_1.png", filtering=TextureFiltering.NEAREST))
+        
+        self.HUD_crosshair = Object2D(self.HUD_crosshair_sprite, self.game.camera, scale=Vec2(1,1) * 20, depth=-100)
+        self.HUD_crosshair.position = Vec2(self.game.dimensions[0]/2, self.game.dimensions[1]/2)
+        self.game.window.add_object2d(self.HUD_crosshair)
+
         self.HUD_revolver_sprite = Sprite.from_texture(Texture.from_file("./sprites/HUD_revolver.png", filtering=TextureFiltering.NEAREST))
 
         self.HUD_revolver = Object2D(self.HUD_revolver_sprite, self.game.camera, scale=Vec2(1,1) * 250, depth=-100)
-        self.HUD_revolver.position = Vec2(self.game.dimensions[0] - self.HUD_revolver.width/2, self.HUD_revolver.width/2)
+        self.HUD_revolver.position = Vec2(self.game.dimensions[0] - self.HUD_revolver.width/2, self.HUD_revolver.height/2)
         self.game.window.add_object2d(self.HUD_revolver)
 
         self.test_item = Item(game, "Cube", "Very cubic.", self.cube_model, Vec3(-10,-2,10), scale=Vec3(0.1,0.1,0.1))
@@ -114,6 +121,7 @@ class SceneIntro(Scene):
         self.game.window.remove_object2d(self.HUD_revolver)
         self.game.window.remove_point_light(self.test_light)
         self.game.window.remove_emitter(self.emitter)
+        self.game.window.remove_object2d(self.HUD_crosshair)
 
     def update(self):
         dt = self.game.window.deltatime
