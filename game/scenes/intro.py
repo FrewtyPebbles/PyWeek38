@@ -39,7 +39,7 @@ class SceneIntro(Scene):
 
         self.floor = Object3D(self.cube_model, Vec3(0,-5,10), scale=Vec3(100,1,100))
         self.floor.material.diffuse_texture = self.concrete_texture
-        self.floor_collider = ConvexCollider(self.floor)
+        self.floor_collider = BoxCollider(self.floor)
         self.floor.add_collider(self.floor_collider)
         self.game.window.add_object(self.floor)
 
