@@ -12,3 +12,7 @@ python3 main.py
 ```
 
 The supported platforms are Windows and Linux, although in the future I plan on releasing [Loxoc](https://pypi.org/project/Loxoc/) wheels for MacOS aswel.
+
+Heres a gif of the test scene for those curious:
+
+![preview](/previews/Recording%202024-09-21%20at%2015.09.11.gif "Test file preview.")
